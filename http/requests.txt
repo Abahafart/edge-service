@@ -1,0 +1,6 @@
+http :9000/books
+http :9000/orders
+Using ab apache tool
+https://gist.github.com/yolossn/20d86c79745acbd97125b9cca950cbf7
+ab -n 21 -c 1 -m POST http://localhost:9000/orders
+ab -n 21 -c 1 -m GET http://localhost:9000/books

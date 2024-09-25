@@ -8,10 +8,23 @@ spring:
           uri: ${CATALOG_SERVICE_URL:http://localhost:9001}/books
           predicates:
             - Path=/books/**
+          filters:
+            #name of the filter
+            - name: CircuitBreaker
+              args:
+                #name of circuit breaker
+                name: catalogCircuitBreaker
+                #forwards request to this URI when the circuit is open
+                fallbackUri: forward:/catalog-fallback
         - id: order-route
           uri: ${ORDER_SERVICE_URL:http://localhost:9002}/orders
           predicates:
             - Path=/orders/**
+          filters:
+            #no fallback defined for this circuit breaker
+            - name: CircuitBreaker
+              args:
+                name: orderCircuitBreaker
       http-client:
         #time limit for a connection to be established
         connect-timeout: 2000
@@ -43,11 +56,55 @@ spring:
               maxBackoff: 500ms
               factor: 2
               basedOnPreviousValue: false
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter:
+              #tokens per seconds
+              replenishRate: 10
+              #when a spike occurs, it is allowed to 20
+              burstCapacity: 20
+              #every request has a cost 1 token
+              requestedTokens: 1
+        - SaveSession
   lifecycle:
     timeout-per-shutdown-phase: 15s
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      connect-timeout: 2s
+      timeout: 1s
+  session:
+    redis:
+      namespace: polar:edge
+    timeout: 10m
 server:
   port: 9000
   netty:
     connection-timeout: 2s
     idle-timeout: 15s
   shutdown: graceful
+resilience4j:
+  circuitbreaker:
+    configs:
+      #default configuration bean for all circuit breakers
+      default:
+        #the size of sliding window used to record the outcome of calls when the circuit is closed
+        sliding-window-size: 20
+        #number of permitted calls when the circuit is half-open
+        permitted-number-of-calls-in-half-open-state: 5
+        #when de failure rate is above the threshold, the circuit becomes open
+        failure-rate-threshold: 50
+        #waiting time before moving from open to half-open
+        wait-duration-in-open-state:
+          seconds: 15
+  timelimiter:
+    configs:
+      #default configuration bean for all time limiters
+      default:
+        #time configuration in seconds
+        timeout-duration:
+          seconds: 5
+logging:
+  level:
+    io.github.resilience4j: DEBUG
