@@ -33,3 +33,5 @@ spec:
               value: http://catalog-service
             - name: ORDER_SERVICE_URL
               value: http://order-service
+            - name: SPRING_DATA_REDIS_HOST
+              value: polar-redis
