@@ -31,6 +31,7 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
     implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
     implementation("org.springframework.session:spring-session-data-redis")
+    implementation("org.springframework.cloud:spring-cloud-starter-config")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:junit-jupiter")
@@ -46,4 +47,17 @@ dependencyManagement {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.bootBuildImage {
+    builder.set("docker.io/paketobuildpacks/builder-jammy-base")
+    imageName = "${project.name}"
+    environment = mapOf("BP_JVM_VERSION" to "21")
+    docker {
+        publishRegistry {
+            username = project.findProperty("registryUsername").toString()
+            password = project.findProperty("registryToken").toString()
+            url = project.findProperty("registryUrl").toString()
+        }
+    }
 }
